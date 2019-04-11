@@ -25,12 +25,8 @@ module Selenium
       # Specification of the desired and/or actual capabilities of the browser that the
       # server is being asked to create.
       #
-      # @api private
-      #
 
       class Capabilities
-
-        EXTENSION_CAPABILITY_PATTERN = /\A[\w-]+:.*\z/.freeze
 
         KNOWN = [
           :browser_name,
@@ -175,56 +171,6 @@ module Selenium
             caps.merge!(data)
 
             caps
-          end
-
-          #
-          # Creates W3C compliant capabilities from OSS ones.
-          # @param oss_capabilities [Hash, Remote::Capabilities]
-          #
-
-          def from_oss(oss_capabilities)
-            w3c_capabilities = new
-
-            # TODO: (AR) make capabilities enumerable?
-            oss_capabilities = oss_capabilities.__send__(:capabilities) unless oss_capabilities.is_a?(Hash)
-            oss_capabilities.each do |name, value|
-              next if value.nil?
-              next if value.is_a?(String) && value.empty?
-
-              capability_name = name.to_s
-
-              snake_cased_capability_names = KNOWN.map(&:to_s)
-              camel_cased_capability_names = snake_cased_capability_names.map(&w3c_capabilities.method(:camel_case))
-
-              next unless snake_cased_capability_names.include?(capability_name) ||
-                          camel_cased_capability_names.include?(capability_name) ||
-                          capability_name.match(EXTENSION_CAPABILITY_PATTERN)
-
-              w3c_capabilities[name] = value
-            end
-
-            # User can pass :firefox_options or :firefox_profile.
-            #
-            # TODO: (AR) Refactor this whole method into converter class.
-            firefox_options = oss_capabilities['firefoxOptions'] || oss_capabilities['firefox_options'] || oss_capabilities[:firefox_options]
-            firefox_profile = oss_capabilities['firefox_profile'] || oss_capabilities[:firefox_profile]
-            firefox_binary  = oss_capabilities['firefox_binary'] || oss_capabilities[:firefox_binary]
-
-            if firefox_profile && firefox_options
-              second_profile = firefox_options['profile'] || firefox_options[:profile]
-              if second_profile && firefox_profile != second_profile
-                raise Error::WebDriverError, 'You cannot pass 2 different Firefox profiles'
-              end
-            end
-
-            if firefox_options || firefox_profile || firefox_binary
-              options = WebDriver::Firefox::Options.new(firefox_options || {})
-              options.binary = firefox_binary if firefox_binary
-              options.profile = firefox_profile if firefox_profile
-              w3c_capabilities.merge!(options.as_json)
-            end
-
-            w3c_capabilities
           end
         end
 
